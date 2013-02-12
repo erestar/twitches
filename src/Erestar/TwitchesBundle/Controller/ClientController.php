@@ -46,6 +46,28 @@ class ClientController extends Controller
         $securityContext = $this->container->get('security.context');
         $securityToken = $securityContext->getToken();
 
+
+
+        // $accessTokenString = $request->get('token');
+        // $storage = $this->container->get('fos_oauth_server.storage');
+        // $tokenObj = $storage->getAccessToken($accessTokenString);
+        // if ($tokenObj && !$token->hasExpired()) 
+        // {
+        //     $token = array(
+        //         "access_token"=>$tokenObj->getToken(),
+        //         "espires_in"=>$tokenObj->getExpiresIn()
+
+        //         );
+        //     $response = new Response();
+        //     $response->setStatusCode(200);
+
+        //     $response->setContent(json_encode($token));
+
+        //     $response->headers->set('Content-Type', 'application/json');
+
+        //     return $response;
+        // }
+
         $auth_handler = $this->container->get('erestar.twitches.authentication_handler');
         if( $securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED') ){
             return $auth_handler->onAuthenticationSuccess($request, $securityToken);

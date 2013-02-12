@@ -2,97 +2,151 @@
 {% block content %}
 <h2>The Client</h2>
 
+<h3>Utilities</h3>
+
 <a href="#" id="dump-client-button" class="btn">Dump Client</a>
+
+<a href="{{ path('fos_user_security_logout') }}" class="btn">Logout</a>
 
 <a id="refresh-token-button" class="btn" href="{{ path('client_refresh') }}">Refresh Token</a>
 
-<a class="btn" href="{{ path('client_force_login') }}">Force Login</a>
+<hr>
 
-<a class="btn get-api-callable" href="{{ path('api_reflect') }}">Reflect</a>
 
-<a class="btn get-api-callable" href="{{ path('api_store_items') }}">List</a>
+<h3>REST Api Calls</h3>
 
-<div id="login-form-container" class="hide">
-    You must log in.
+<a id="reflect-button" class="btn get-api-callable" href="{{ path('api_reflect') }}">Reflect</a>
+
+<a id="list-button" class="btn get-api-callable" href="{{ path('api_store_items') }}">List</a>
+
+<div class="stage">
+    
+</div>
+
+<div id="login-form-container" class="modal fade hide">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        You must log in.
+        For the demo, try <span class="label label-info">jim / twitches</span>
+    </div>
+
+
     <form method="post" id="login-form" action="{{ path('fos_user_security_check') }}">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="_username" value="" />
+        <div class="modal-body">
+            <div class="alert alert-error"></div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="_username" value="" />
+                
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="_password" />
+        </div>
     
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="_password" />
-    
-        {#
-            If you want to control the URL the user is redirected to on success (more details below)
-            <input type="hidden" name="_target_path" value="/account" />
-        #}
-    
-        <button type="submit">login</button>    
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="submit">Login</button>
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
     </form>
 </div>
-
-<div id="reflect">
-    
-</div>
-
 
 <script>
 
 var client = { 
     token: '', 
-    refresh_token: '', 
     latest_failed_attempt: null,
+    latest_failed_attempt_success: null,
+
     refreshToken: function() {
-        var url = "{{ path('client_refresh') }}";
+        console.log('Checking for authentication with server via session...');
         var _client = this;
-        $.get(url, this.token)
+        var url = "{{ path('client_refresh') }}";
+        $.get(url, 'token='+this.token)
         .done(function(data, textstatus, jqxhr) {
-            console.log('successful refresh');
+            console.log('Your session is authenticated with the server; new AccessToken granted.');
             _client.token = data.access_token;
             _client.retryLastCall();
         })
         .fail(function(jqxhr, textstatus, errorthrown) {
-            console.log('failed: '+url);
+            console.log('No session is active with the server. Forcing login.');
             if (jqxhr.status == 401) {
-                $('#login-form-container').show();
+                $('#login-form-container').find('.alert').hide();
+                $('#login-form-container').modal('show');
             };
         })
     },
     retryLastCall: function() {
+        var _client = this;
         console.log('Retrying last call...');
-        if (client.latest_failed_attempt) {
-            callApi(client.latest_failed_attempt);
-            $('#login-form-container').hide();
+        if (_client.latest_failed_attempt) {
+            _client.call(client.latest_failed_attempt, 'GET', _client.latest_failed_attempt_success);
+            $('#login-form-container').modal('hide');
         } else {
             console.log('No URL to try.');
         }
 
+    },
+    call: function(url, method, success) {
+        var _client = this;
+        if (!method) {method="GET"};
+        $.ajax({
+            url: url,
+            type: method,
+            beforeSend: function(xhr){
+                console.log('Calling: '+url);
+                xhr.setRequestHeader('Authorization', 'Bearer '+client.token);
+                xhr.setRequestHeader('Accept', 'application/json');
+            }
+        })
+        .done(function(data, textstatus, jqxhr) {
+            _client.latest_failed_attempt = null;
+            console.log('Completed: '+url);
+            console.log(data);
+            if (success) {
+                success(data);
+            };
+        })
+        .fail(function(jqxhr, textstatus, errorthrown) {
+            _client.latest_failed_attempt = url;
+            _client.latest_failed_attempt_success = success;
+            if (jqxhr.status == 401) {
+                console.log('Access token was rejected.');
+                _client.refreshToken();
+            };
+        })
+        ;
+
     }
 };
 
-function callApi(url, success) {
-    $.ajax({
-        url: url,
-        type: "GET",
-        beforeSend: function(xhr){
-            console.log('Calling: '+url);
-            xhr.setRequestHeader('Authorization', 'Bearer '+client.token);
-            xhr.setRequestHeader('Accept', 'application/json');
-        }
-    })
-    .done(function(data, textstatus, jqxhr) {
-        client.latest_failed_attempt = null;
-        console.log('Completed: '+url);
-        console.log(data);
-    })
-    .fail(function(jqxhr, textstatus, errorthrown) {
-        client.latest_failed_attempt = url;
-        client.refreshToken();
-    })
-    ;
-}
-
-
 $(function() {
+    $('#list-button').data('onsuccess', function(data) {
+        console.log("CALLED LOAD ITEMS");
+        var $table = $('<table class="table"><thead><tr><th></th><th>Item</th><th>Description</th><th>Cost</th><tbody></tbody></table>');
+        var $tbody = $table.find('tbody');
+
+        $.each(data, function(index,item) {
+            var name = item.name;
+            var cost = item.cost;
+            var description = item.description;
+            var image_url = item.image_url;
+
+            var $row = $('<tr><td><img src="'+image_url+'"></td><td>'+name+'</td><td>'+item.description+'</td><td>'+cost+'</td></tr>');
+            $tbody.append($row);
+        });
+
+        $('.stage').html($table);
+    });
+
+    $('#reflect-button').data('onsuccess', function(data) {
+        console.log("CALLED REFLECT");
+
+        var $div = $('<br><div class="well"></div>');
+
+        $div.append('This is what I know about you...<br>');
+        $div.append('Your email address is: <strong>'+data.email+'</strong>');
+
+        $('.stage').html($div);
+    })
+
 
     $('#refresh-token-button').on('click', function(e) {
         client.refreshToken();
@@ -101,12 +155,18 @@ $(function() {
 
     $('#login-form').on('submit', function() {
         $form = $(this);
-        console.log($form.attr('action'));
         $.post($form.attr('action'), $form.serialize())
         .done(function(data) {
+            console.log('Session authentication established with the server; AccessToken granted.')
             client.token = data.access_token;
             client.retryLastCall();
-        });
+        })
+        .fail(function(jqxhr, textstatus, errorthrown) {
+            $('#login-form-container').find('.alert').html(errorthrown).show();
+            console.log(errorthrown);
+            console.log('Could not authenticate with the server.')
+        })
+        ;
 
         return false;
     });
@@ -114,7 +174,9 @@ $(function() {
     $('.get-api-callable').on('click', function() {
         var url = $(this).prop('href');
 
-        callApi(url);
+        var call_on_success = $(this).data('onsuccess');
+
+        client.call(url, 'GET', call_on_success);
 
         return false;
     });

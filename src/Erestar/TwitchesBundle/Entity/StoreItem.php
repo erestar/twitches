@@ -49,6 +49,23 @@ class StoreItem
      */
     private $quantity;
 
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="image_url", type="string", length=1000)
+     */
+    private $imageUrl;
+
+    public function getImageUrl()
+    {
+        return $this->imageUrl;
+    }
+
+    public function setImageUrl($url)
+    {
+        $this->imageUrl = $url;
+    }
+
 
     /**
      * Get id
