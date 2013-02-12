@@ -16,6 +16,8 @@ use FOS\OAuthServerBundle\Model\ClientManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
+use Symfony\Component\DependencyInjection\ContainerAware;
+
 class AuthenticationHandler 
 implements AuthenticationSuccessHandlerInterface,
 AuthenticationFailureHandlerInterface
@@ -24,14 +26,13 @@ AuthenticationFailureHandlerInterface
     private $oauth2;
     private $clientManager;
 
-    public function __construct(Router $router, Oauth2 $oauth2, ClientManagerInterface $clientManager)
+    public function __construct(Router $router, Oauth2 $oauth2, ClientManagerInterface $clientManager, $clientId)
     {
         $this->router = $router;
         $this->oauth2 = $oauth2;
         $this->clientManager = $clientManager;
         //TODO move this to a configuration file
-        $this->clientId = '6_5ccc4dbk7eskoo4oww8cscg88gck480woogos44w48gk8wko4k';
-        $this->clientSecret = '3d3t0uyqr0qosg4kw440gk4go48sc4c8w4ck8800c88o0k0o8g';
+        $this->clientId = $clientId;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token)

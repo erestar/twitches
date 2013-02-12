@@ -25,6 +25,8 @@
             <argument type="service" id="router" />
             <argument type="service" id="fos_oauth_server.server" />
             <argument type="service" id="fos_oauth_server.client_manager" />
+            <argument type="string">%javascript_client_id%</argument> 
+
         </service>  
           
      </services>  
