@@ -2,11 +2,16 @@
 {% block content %}
 <h2>The Client</h2>
 
+<div class="alert alert-warning">
+    In Chrome, press <span class="label">Ctrl+Shift+J</span> to open the console to see what's going on.
+    
+</div>
+
 <h3>Utilities</h3>
 
 <a href="#" id="dump-client-button" class="btn">Dump Client</a>
 
-<a href="{{ path('fos_user_security_logout') }}" class="btn">Logout</a>
+<a href="{{ path('fos_user_security_logout') }}" class="btn">Session Logout</a>
 
 <a id="refresh-token-button" class="btn" href="{{ path('client_refresh') }}">Refresh Token</a>
 
