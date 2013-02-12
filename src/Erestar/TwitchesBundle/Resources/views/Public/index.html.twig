@@ -1,0 +1,67 @@
+{% extends '::base.html.twig' %}
+{% block content %}
+
+
+<div class="well">
+    <h2>Registered Clients</h2>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Client</th>
+                <th>Client Id</th>
+                <th>Redirect URIs</th>
+                <th>Allowed Grant Types</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+
+
+                {% for grantType in client.allowedGrantTypes %}
+                {% for uri in client.redirectUris %}
+            <tr>
+                <td>{{ client.name }}</td>
+                <td>i{{ client.publicId }}</td>
+                <td>{{ uri }}</td>
+                <td>{{ grantType }}</td>
+                <td>
+                    <a href="{{ path("fos_oauth_server_authorize", { "client_id": client.publicId, "response_type": grantType, "redirect_uri": uri}) }}" class="">
+                        {{ grantType }} : {{ uri }}
+                    </a>
+
+                    <br>
+                </td>
+                
+                {% endfor %}
+            </tr>
+                {% endfor %}
+            {% else %}
+
+            <tr>
+                <td colspan="10">
+                    <span class="muted">No registered clients.</span>
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+    </table>
+
+
+    <div class="alert">
+        Clients must be registered via the command line. For example:
+        <br>
+        <br>
+        <pre>erestar:twitches:client:create --redirect-uri="/api" "Javascript Client" --grant-type="token" --grant-type="authorization_code"</pre>
+    </div>
+
+    <div>
+        <hr>
+        <a href="{{ path('client_index') }}">Access Javascript Client</a>
+        
+    </div>
+
+</div>
+{% endblock %}

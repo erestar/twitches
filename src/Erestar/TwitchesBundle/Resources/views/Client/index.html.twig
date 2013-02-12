@@ -1,0 +1,128 @@
+{% extends '::base.html.twig' %}
+{% block content %}
+<h2>The Client</h2>
+
+<a href="#" id="dump-client-button" class="btn">Dump Client</a>
+
+<a id="refresh-token-button" class="btn" href="{{ path('client_refresh') }}">Refresh Token</a>
+
+<a class="btn" href="{{ path('client_force_login') }}">Force Login</a>
+
+<a class="btn get-api-callable" href="{{ path('api_reflect') }}">Reflect</a>
+
+<a class="btn get-api-callable" href="{{ path('api_store_items') }}">List</a>
+
+<div id="login-form-container" class="hide">
+    You must log in.
+    <form method="post" id="login-form" action="{{ path('fos_user_security_check') }}">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="_username" value="" />
+    
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="_password" />
+    
+        {#
+            If you want to control the URL the user is redirected to on success (more details below)
+            <input type="hidden" name="_target_path" value="/account" />
+        #}
+    
+        <button type="submit">login</button>    
+    </form>
+</div>
+
+<div id="reflect">
+    
+</div>
+
+
+<script>
+
+var client = { 
+    token: '', 
+    refresh_token: '', 
+    latest_failed_attempt: null,
+    refreshToken: function() {
+        var url = "{{ path('client_refresh') }}";
+        var _client = this;
+        $.get(url, this.token)
+        .done(function(data, textstatus, jqxhr) {
+            console.log('successful refresh');
+            _client.token = data.access_token;
+            _client.retryLastCall();
+        })
+        .fail(function(jqxhr, textstatus, errorthrown) {
+            console.log('failed: '+url);
+            if (jqxhr.status == 401) {
+                $('#login-form-container').show();
+            };
+        })
+    },
+    retryLastCall: function() {
+        console.log('Retrying last call...');
+        if (client.latest_failed_attempt) {
+            callApi(client.latest_failed_attempt);
+            $('#login-form-container').hide();
+        } else {
+            console.log('No URL to try.');
+        }
+
+    }
+};
+
+function callApi(url, success) {
+    $.ajax({
+        url: url,
+        type: "GET",
+        beforeSend: function(xhr){
+            console.log('Calling: '+url);
+            xhr.setRequestHeader('Authorization', 'Bearer '+client.token);
+            xhr.setRequestHeader('Accept', 'application/json');
+        }
+    })
+    .done(function(data, textstatus, jqxhr) {
+        client.latest_failed_attempt = null;
+        console.log('Completed: '+url);
+        console.log(data);
+    })
+    .fail(function(jqxhr, textstatus, errorthrown) {
+        client.latest_failed_attempt = url;
+        client.refreshToken();
+    })
+    ;
+}
+
+
+$(function() {
+
+    $('#refresh-token-button').on('click', function(e) {
+        client.refreshToken();
+        return false;
+    });
+
+    $('#login-form').on('submit', function() {
+        $form = $(this);
+        console.log($form.attr('action'));
+        $.post($form.attr('action'), $form.serialize())
+        .done(function(data) {
+            client.token = data.access_token;
+            client.retryLastCall();
+        });
+
+        return false;
+    });
+
+    $('.get-api-callable').on('click', function() {
+        var url = $(this).prop('href');
+
+        callApi(url);
+
+        return false;
+    });
+
+    $('#dump-client-button').on('click', function(e) {
+        console.log(client);
+        return false;
+    })
+});
+</script>
+{% endblock %}
